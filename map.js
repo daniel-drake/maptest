@@ -1,11 +1,16 @@
+
 var animate = window.requestAnimationFrame ||
 window.webkitRequestAnimationFrame ||
 window.mozRequestAnimationFrame ||
-function(callback) { window.setTimeout(callback, 1000/60) };
+function(callback) { window.setTimeout(callback, 1000/2) };
+//function(callback) { window.setTimeout(callback, 1000/60) };
+
+var canvasWidth = 400;
+var canvasHeight = 600;
 
 var canvas = document.createElement('canvas');
-canvas.width = width;
-canvas.height = height;
+canvas.width = canvasWidth;
+canvas.height = canvasHeight;
 var context = canvas.getContext('2d');
 
 window.onload = function() {
@@ -17,7 +22,7 @@ console.log("starting");
 
 function Coord(x,y){
     this.x = x;
-    thix.y = y;
+    this.y = y;
 }
 
 function Tile(type) {
@@ -56,25 +61,25 @@ function Map(tileWidth, tileHeight, cols, rows){
     this.contents = [];
 }
 
-Map.prototype.calcOffset(x, y){
+Map.prototype.calcOffset = function(x, y){
     return y * this.cols + x;
 }
 
-Map.prototype.get(x, y){
+Map.prototype.get = function(x, y){
     var offset = this.calcOffset(x,y);
-    return contents[offset];
+    return this.contents[offset];
 }
 
-Map.prototype.set(tile, x, y){
+Map.prototype.set = function(tile, x, y){
     var offset = this.calcOffset(x,y);
-    contents[offset] = tile; 
+    this.contents[offset] = tile; 
 }
 
-Map.prototype.getRandomTerrain(){
+Map.prototype.getRandomTerrain = function(){
     return this.terrain[Math.floor(Math.random() * Math.floor(this.terrain.length))]; 
 }
 
-Map.prototype.populate(){
+Map.prototype.populate = function(){
     var y;
     var x;
     for(y = 0; y < this.rows; ++y){
@@ -89,35 +94,119 @@ Map.prototype.populate(){
 function ViewPort(topLeft, bottomRight){
     this.topLeft = topLeft;
     this.bottomRight = bottomRight;
+    this.initialWidth = bottomRight.x;
+    this.initialHeight = bottomRight.y;
+    this.updateOccurred = true;
+}
+
+ViewPort.prototype.render = function(map){
+    var firstRowPixels = map.tileHeight - (this.topLeft.y % map.tileHeight);
+    var lastRowPixels = this.bottomRight.y % map.tileHeight;
+    var firstColPixels = map.tileWidth - (this.topLeft.x % map.tileWidth);
+    var lastColPixels = this.bottomRight.x % map.tileWidth;
+
+    var topTile = Math.floor(this.topLeft.y / map.tileHeight);
+    var leftTile = Math.floor(this.topLeft.x / map.tileWidth);
+    var bottomTile = Math.floor(this.bottomRight.y / map.tileHeight);
+    var rightTile = Math.floor(this.bottomRight.x / map.tileWidth);
+
+    // only redraw the screen if it was updated
+    if (this.updateOccurred){
+	var x,y;
+	var xpos = 0;
+	var ypos = 0;
+	var width = 0;
+	var height = 0;
+
+	for (y = topTile; y < bottomTile; ++y){
+	    xpos = 0;
+	    for(x = leftTile; x < rightTile; ++x){
+		var tile = map.get(x, y);
+		
+		if (y == 0) {
+		    height = firstRowPixels;
+		}
+		else if (y == (bottomTile - 1)) {
+		    height = lastRowPixels;
+		}
+		else {
+		    height = map.tileHeight;
+		}
+
+		if (x == 0) {
+		    width = firstColPixels;
+		}
+		else if (x == (rightTile - 1)) {
+		    width = lastColPixels;
+		}
+		else {
+		    width = map.tileWidth;
+		}		
+
+
+		var coord = new Coord(xpos, ypos);
+		var size = new Coord(width, height);
+		tile.render(coord, size);
+
+		xpos += width;
+	    }
+	    ypos += height;
+	}
+    }
     this.updateOccurred = false;
 }
 
-ViewPort.prototype.render(map){
-    var topTile = Math.floor(this.topLeft.y / this.tileHeight);
-    var leftTile = Math.floor(this.topLeft.x / this.tideWidth);
-    var bottomTile = Math.floor(this.bottomRight.y / this.tileHeight);
-    var rightTile = Math.floor(this.bottomRight.x / this.tileWidth);
-    console.log("viewport is (", leftTile, ",", topTile, ") (", rightTile, ",", bottomTile, ")");
+ViewPort.prototype.move = function(xDelta, yDelta){
+    this.updateOccurred = true;
+    this.topLeft.x += xDelta;
+    this.topLeft.y += yDelta;
+    this.bottomRight.x += xDelta;
+    this.bottomRight.y += yDelta;
 
-    // only redraw the scrren if it was updated
-    if (this.updateOccurred){
-	var x,y;
-	for (y = topTile; y < bottomTile; ++y){
-	    for(x = leftTile, x < rightTile, ++x){
-		var tile = map.get(x, y);
-		var coord = new Coord(x*this.tileWidth, y * this.tileHeight);
-		var size = new Coord(this.tileWidth, this.tileHeight);
-		//tile.render(coord, size);
-	    }
+    if (this.topLeft.x < 0){
+	this.topLeft.x = 0;
+    }
+
+    if ((this.topLeft.x + this.tileWidth) > this.initialWidth){
+	this.topLeft.x = this.initialWidth;
+    }
+
+    if (this.topLeft.y < 0){
+	this.topLeft.y = 0;
+    }
+
+    if ((this.topLeft.y + this.tileHeight) > this.initialHeight){
+	this.topLeft.y = this.initialHeight;
+    }
+}
+
+ViewPort.prototype.update = function(){
+    var xDelta = 0;
+    var yDelta= 0;
+    for(var key in keysDown) {
+	var value = Number(key);
+	if(value == 37) { // left arrow
+	    xDelta = 0;
+	    yDelta = -1;
+	} else if (value == 39) { // right arrow
+	    xDelta = 0;
+	    yDelta = 1;
+	} else {
+	    xDelta = 0;
+	    yDelta = 0;
 	}
+    }
+
+    if (xDelta != 0 || yDelta != 0){
+	viewPort.move(xDelta, yDelta);
     }
 }
 
 var map = new Map(20, 20, 50, 50);
 map.populate();
-var initViewPortStart(0,0);
-var initviewPortEnd(400,600);
-var viewPort new ViewPort(initViewPortStart, initViewPortEnd);
+var initViewPortStart = new Coord(0,0);
+var initViewPortEnd = new Coord(canvasWidth, canvasHeight);
+var viewPort = new ViewPort(initViewPortStart, initViewPortEnd);
 
 var step = function() {
     update();
@@ -126,10 +215,21 @@ var step = function() {
 };
 
 var update = function() {
+    viewPort.update();
 };
 
 var render = function() {
     viewPort.render(map);
 };
+
+var keysDown = {};
+
+window.addEventListener("keydown", function(event) {
+  keysDown[event.keyCode] = true;
+});
+
+window.addEventListener("keyup", function(event) {
+  delete keysDown[event.keyCode];
+});
 
 
