@@ -29,12 +29,14 @@ var step = function() {
 
 var update = function() {
     myTank.update();
+    myBullet.update();
 };
 
 var render = function() {
     context.fillStyle = "Black";
     context.fillRect(0, 0, canvas.width,canvas.height);
     myTank.render();
+    myBullet.render();
 };
 
 var keysDown = {};
@@ -143,6 +145,8 @@ Tank.prototype.move = function(rotation, speed){
 
     if (speed != 0){
 	this.speed = speed;
+	// adjusting by Math.PI/2 is correcting direction for front
+	// of tank
 	this.xPos += this.speed * Math.cos(this.rotation + Math.PI/2);
 	this.yPos += this.speed * Math.sin(this.rotation + Math.PI/2);
 
@@ -188,5 +192,71 @@ Tank.prototype.update = function(){
     }
 }
 
+function Bullet(){
+    // x,y + angle is a vector
+    this.x = 0;
+    this.y = 0;
+    this.angleRadians = 0;
+    this.maxDistance = 50;
+    this.currDistance = 0;
+    this.speed = 0;
+}
+
+Bullet.prototype.setVector = function(x, y, angleRadians){
+    this.x = x;
+    this.y = y;
+    this.angleRadians = angleRadians;
+}
+
+Bullet.prototype.initDistance = function(){
+    this.currDistance = 0;
+    this.speed = 6;
+}
+
+Bullet.prototype.move = function(){
+    this.x += this.speed * Math.cos(this.angleRadians + Math.PI/2);
+    this.y += this.speed * Math.sin(this.angleRadians + Math.PI/2);
+
+    if (this.x > canvas.width){
+	this.x = canvas.width;
+    }
+
+    if (this.x < 0){
+	this.x = 0;
+    }
+
+    if (this.y > canvas.height){
+	this.y = canvas.height;
+    }
+
+    if (this.y < 0){
+	this.y = 0;
+    }
+}
+
+Bullet.prototype.update = function(){
+    for(var key in keysDown) {
+	var value = Number(key);
+	if(value == 32) { // space bar 
+	    this.display = true;
+	    this.setVector(myTank.xPos, myTank.yPos, myTank.rotation);
+	    this.initDistance();    
+	}
+    }
+    if (this.display){
+	this.move();
+    }
+
+}
+
+Bullet.prototype.render = function(){
+    if (this.display){
+	context.beginPath();
+	context.fillStyle = "White";
+	context.arc(this.x, this.y, 1, 0, 2 * Math.PI);
+	context.fill();
+    }
+}
 
 var myTank = new Tank(50,50);
+var myBullet = new Bullet()
