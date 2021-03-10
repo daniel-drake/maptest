@@ -34,7 +34,7 @@ var update = function() {
 var render = function() {
     context.fillStyle = "Black";
     context.fillRect(0, 0, canvas.width,canvas.height);
-    myTank.render(20, 20);
+    myTank.render();
 };
 
 var keysDown = {};
@@ -48,14 +48,21 @@ window.addEventListener("keyup", function(event) {
 });
 
 function Tank(width,height){
-   this.width = width;
-   this.height = height;
-   this.rotation = 0.0;
+    this.width = width;
+    this.height = height;
+    this.rotation = 0.0;
+    this.speed = 2.0;
+    this.xPos = 20;
+    this.yPos = 20;
+
 };
 
-Tank.prototype.render = function(x,y){
+Tank.prototype.render = function(){
 
     context.save();
+
+    var x = this.xPos;
+    var y = this.yPos;
 
     var xCenter = x + this.width / 2;
     var yCenter = y + this.height / 2;
@@ -122,18 +129,45 @@ Tank.prototype.render = function(x,y){
 
  };
 
-Tank.prototype.move = function(rotation){
-    this.rotation += rotation;
-    if (this.rotation > 2*Math.PI){
-	this.rotation = 0;
+Tank.prototype.move = function(rotation, speed){
+
+    if (rotation != 0){
+	this.rotation += rotation;
+	if (this.rotation > 2*Math.PI){
+	    this.rotation = 0;
+	}
+	else if (this.rotation < 0){
+	    this.rotation = 2 * Math.PI;
+	}
     }
-    else if (this.rotation < 0){
-	this.rotation = 2 * Math.PI;
+
+    if (speed != 0){
+	this.speed = speed;
+	this.xPos += this.speed * Math.cos(this.rotation + Math.PI/2);
+	this.yPos += this.speed * Math.sin(this.rotation + Math.PI/2);
+
+	if (this.xPos > canvas.width){
+	    this.xPos = canvas.width;
+	}
+
+	if (this.xPos < 0){
+	    this.xPos = 0;
+	}
+
+	if (this.yPos > canvas.height){
+	    this.yPos = canvas.height;
+	}
+
+	if (this.yPos < 0){
+	    this.yPos = 0;
+	}
     }
 }
 
 Tank.prototype.update = function(){
     var rotation = 0;
+    var speed = 0;
+    
     for(var key in keysDown) {
 	var value = Number(key);
 	if(value == 37) { // left arrow
@@ -141,11 +175,17 @@ Tank.prototype.update = function(){
 	} else if (value == 39) { // right arrow
 	    rotation += .1;
 	}
-    }
-    if (rotation != 0){
-	myTank.move(rotation);
+	else if (value == 38) { // up arrow
+	    speed = -3;
+	}
+	else if (value == 40) { // down arrow
+	    speed = 3;
+	}
     }
 
+    if ((rotation != 0) || (speed != 0)){
+	myTank.move(rotation, speed);
+    }
 }
 
 
