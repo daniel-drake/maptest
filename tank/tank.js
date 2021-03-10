@@ -50,20 +50,18 @@ window.addEventListener("keyup", function(event) {
 function Tank(width,height){
    this.width = width;
    this.height = height;
-   this.rotation = 0;
+   this.rotation = 0.0;
 };
 
 Tank.prototype.render = function(x,y){
-    // rect body
-    context.clearRect(x, y, this.width, this.height);
-    context.fillStyle = "Blue";
-    context.fillRect(x, y, this.width, this.height);
 
     context.save();
 
-    //context.translate( x + (this.width/2), y + (this.height/2));
-    context.translate( x, y);
+    var xCenter = x + this.width / 2;
+    var yCenter = y + this.height / 2;
+    context.translate(xCenter, yCenter);
     context.rotate(this.rotation);
+    context.translate(-xCenter, -yCenter);
 
     var trackWidth = this.width * .25;
     var bodyWidth = this.width *.5;
@@ -125,13 +123,13 @@ Tank.prototype.render = function(x,y){
  };
 
 Tank.prototype.move = function(rotation){
-    if (rotation > 2*Math.PI){
-	rotation = 0;
+    this.rotation += rotation;
+    if (this.rotation > 2*Math.PI){
+	this.rotation = 0;
     }
-    else if (rotation < 0){
-	rotation = 2 * Math.PI;
+    else if (this.rotation < 0){
+	this.rotation = 2 * Math.PI;
     }
-    this.rotation = rotation;
 }
 
 Tank.prototype.update = function(){
@@ -139,10 +137,12 @@ Tank.prototype.update = function(){
     for(var key in keysDown) {
 	var value = Number(key);
 	if(value == 37) { // left arrow
-	    rotation = -1;
+	    rotation += -.1;
 	} else if (value == 39) { // right arrow
-	    rotation = 1;
+	    rotation += .1;
 	}
+    }
+    if (rotation != 0){
 	myTank.move(rotation);
     }
 
