@@ -4,8 +4,8 @@ window.webkitRequestAnimationFrame ||
 window.mozRequestAnimationFrame ||
 function(callback) { window.setTimeout(callback, 1000/60) };
 
-var canvasWidth = 400;
-var canvasHeight = 400;
+var canvasWidth = 800;
+var canvasHeight = 800;
 
 var canvas = document.createElement('canvas');
 canvas.width = canvasWidth;
@@ -28,6 +28,7 @@ var step = function() {
 
 var update = function() {
     myTank.update();
+    enemyTank.update();
     myBullet.update();
 };
 
@@ -35,6 +36,7 @@ var render = function() {
     context.fillStyle = "Black";
     context.fillRect(0, 0, canvas.width,canvas.height);
     myTank.render();
+    enemyTank.render();
     myBullet.render();
 };
 
@@ -48,13 +50,13 @@ window.addEventListener("keyup", function(event) {
   delete keysDown[event.keyCode];
 });
 
-function Tank(width,height){
+function Tank(width,height, x, y){
     this.width = width;
     this.height = height;
     this.rotation = 0.0;
     this.speed = 2.0;
-    this.xPos = 20;
-    this.yPos = 20;
+    this.xPos = x;
+    this.yPos = y;
 
 };
 
@@ -197,7 +199,7 @@ function Bullet(){
     this.x = 0;
     this.y = 0;
     this.angleRadians = 0;
-    this.maxDistance = 100;
+    this.maxDistance = 200;
     this.currDistance = 0;
     this.speed = 0;
     this.initialX = 0;
@@ -230,7 +232,6 @@ Bullet.prototype.move = function(){
 
     var dist = Math.sqrt(Math.pow((x2 - x1), 2) + Math.pow((y2-y1), 2));
     this.currDistance = (Math.abs(dist));
-    console.log((this.currDistance), dist);
     if (this.currDistance >= this.maxDistance){
 	this.display = false;
     }
@@ -280,5 +281,7 @@ Bullet.prototype.render = function(){
     }
 }
 
-var myTank = new Tank(50,50);
+var myTank = new Tank(50,50, 20, 20);
+var enemyTank = new Tank(50,50, 200, 20);
+var myTank = new Tank(50,50, 20, 20);
 var myBullet = new Bullet()
