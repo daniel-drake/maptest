@@ -5,7 +5,7 @@ window.mozRequestAnimationFrame ||
 function(callback) { window.setTimeout(callback, 1000/60) };
 
 var canvasWidth = 800;
-var canvasHeight = 600;
+var canvasHeight = 400;
 
 var canvas = document.createElement('canvas');
 canvas.width = canvasWidth;
@@ -20,6 +20,7 @@ window.onload = function() {
 var step = function() {
     update();
     render();
+    checkForCollisions();
     animate(step);
 };
 
@@ -45,6 +46,17 @@ window.addEventListener("keyup", function(event) {
   delete keysDown[event.keyCode];
 });
 
+function Circle(x, y, radius){
+    this.x = x;
+    this.y = y;
+    this.radius = radius;
+};
+
+function Coord(x,y){
+    this.x = x;
+    this.y = y;
+};
+
 function Tank(width,height, x, y){
     this.width = width;
     this.height = height;
@@ -52,8 +64,20 @@ function Tank(width,height, x, y){
     this.speed = 2.0;
     this.xPos = x;
     this.yPos = y;
-
 };
+
+Tank.prototype.getCenter = function(){
+    var xCenter = this.xPos + this.width / 2;
+    var yCenter = this.yPos + this.height / 2;
+    var center = new Coord(xCenter, yCenter);
+    return center;
+}
+
+Tank.prototype.getBoundingCircle = function(){
+    var center = this.getCenter();
+    var circle = new Circle(center.x, center.y, this.width / 2);
+    return circle;
+}
 
 Tank.prototype.render = function(id){
 
@@ -61,13 +85,11 @@ Tank.prototype.render = function(id){
 
     var x = this.xPos;
     var y = this.yPos;
+    var center = this.getCenter();
 
-    var xCenter = x + this.width / 2;
-    var yCenter = y + this.height / 2;
-
-    context.translate(xCenter, yCenter);
+    context.translate(center.x, center.y);
     context.rotate(this.rotation);
-    context.translate(-xCenter, -yCenter);
+    context.translate(-center.x, -center.y);
 
     var trackWidth = this.width * .25;
     var bodyWidth = this.width *.5;
@@ -130,7 +152,6 @@ Tank.prototype.render = function(id){
     context.stroke();
 
     context.restore();
-
  };
 
 Tank.prototype.move = function(rotation, speed){
@@ -203,6 +224,7 @@ function Bullet(){
     this.speed = 0;
     this.initialX = 0;
     this.initialY = 0;
+    this.radius = 4;
 }
 
 Bullet.prototype.setVector = function(x, y, angleRadians){
@@ -256,9 +278,14 @@ Bullet.prototype.render = function(){
     if (this.display){
 	context.beginPath();
 	context.fillStyle = "Green";
-	context.arc(this.x, this.y, 4, 0, 2 * Math.PI);
+	context.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
 	context.fill();
     }
+}
+
+Bullet.prototype.getBoundingCircle = function(){
+    var circle = new Circle(this.x, this.y, this.radius); 
+    return circle;
 }
 
 function Player(id, x, y){
@@ -277,6 +304,7 @@ Player.prototype.update = function(){
     var right;
     var shoot;
 
+    // controls for player1 [cursor keys, space to shoot]
     if (this.id == 1){
     	up = 38;
 	down = 40;
@@ -284,34 +312,34 @@ Player.prototype.update = function(){
 	right = 39;
 	shoot = 32;
     }
+    // controls for player2 [wasd, f to shoot]
     else if (this.id == 2){
 	up = 87;
 	down = 83;
 	left = 65;
 	right = 68;
-	shoot = 71;
+	shoot = 70;
     }
     
     for(var key in keysDown) {
 	var value = Number(key);
-	if(value == left) { // left arrow
+	if(value == left) { 
 	    rotation += -.1;
-	} else if (value == right) { // right arrow
+	} else if (value == right) { 
 	    rotation += .1;
 	}
-	else if (value == up) { // up arrow
+	else if (value == up) { 
 	    speed = -3;
 	}
-	else if (value == down) { // down arrow
+	else if (value == down) { 
 	    speed = 3;
 	}
-	else if(value == shoot) { // space bar shoot bullet 
+	else if(value == shoot) {  
 	    this.bullet.display = true;
 	    this.bullet.initDistance();    
-	    var xCenter = this.tank.xPos + this.tank.width / 2;
-	    var yCenter = this.tank.yPos + this.tank.height / 2;
-	    var yCoord = yCenter - Math.sin(this.tank.rotation + Math.PI/2) * this.tank.height/2;
-	    var xCoord = xCenter - Math.cos(this.tank.rotation + Math.PI/2) * this.tank.width/2;
+	    var center = this.tank.getCenter();
+	    var yCoord = center.y - Math.sin(this.tank.rotation + Math.PI/2) * this.tank.height/2;
+	    var xCoord = center.x - Math.cos(this.tank.rotation + Math.PI/2) * this.tank.width/2;
 	    this.bullet.setVector(xCoord, yCoord, this.tank.rotation);
 	}
     }
@@ -332,3 +360,34 @@ Player.prototype.render = function(){
 
 var player1 = new Player(1, 20, 20);
 var player2 = new Player(2, 80, 80);
+
+function didCollide( obj1, obj2){
+    var collision = false;
+    var circle1 = obj1.getBoundingCircle();
+    var circle2 = obj2.getBoundingCircle();
+
+    var dx = circle1.x - circle2.x;
+    var dy = circle1.y - circle2.y;
+    dist = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy,2));
+    if (dist < (circle1.radius + circle2.radius)){
+	collision = true;
+    }
+
+    return collision;
+}
+
+function checkForCollisions(){
+    // check if player1 bullet hit player2 tank
+    if (player1.bullet.display){
+	if (didCollide(player1.bullet, player2.tank)){
+	    player1.bullet.display = false;
+	    console.log ("player1 hit player2");
+	}
+    }
+    if (player2.bullet.display){
+	if (didCollide(player2.bullet, player1.tank)){
+	    player2.bullet.display = false;
+	    console.log ("player2 hit player1");
+	}
+    }
+}
