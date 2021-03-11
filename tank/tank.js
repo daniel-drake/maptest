@@ -2,7 +2,6 @@
 var animate = window.requestAnimationFrame ||
 window.webkitRequestAnimationFrame ||
 window.mozRequestAnimationFrame ||
-//function(callback) { window.setTimeout(callback, 1000/2) };
 function(callback) { window.setTimeout(callback, 1000/60) };
 
 var canvasWidth = 400;
@@ -68,6 +67,7 @@ Tank.prototype.render = function(){
 
     var xCenter = x + this.width / 2;
     var yCenter = y + this.height / 2;
+
     context.translate(xCenter, yCenter);
     context.rotate(this.rotation);
     context.translate(-xCenter, -yCenter);
@@ -210,7 +210,7 @@ Bullet.prototype.setVector = function(x, y, angleRadians){
 
 Bullet.prototype.initDistance = function(){
     this.currDistance = 0;
-    this.speed = -8;
+    this.speed = -6;
 }
 
 Bullet.prototype.move = function(){
@@ -250,10 +250,11 @@ Bullet.prototype.update = function(){
 	    this.initDistance();    
 	    var xCenter = myTank.xPos + myTank.width / 2;
 	    var yCenter = myTank.yPos + myTank.height / 2;
-	    this.setVector(xCenter, yCenter, myTank.rotation);
-	    context.translate(xCenter, yCenter);
-	    context.rotate(this.rotation);
-	    context.translate(-xCenter, -yCenter);
+	    var yCoord = yCenter - Math.sin(myTank.rotation + Math.PI/2) * myTank.height/2;
+	    var xCoord = xCenter - Math.cos(myTank.rotation + Math.PI/2) * myTank.width/2;
+	    this.setVector(xCoord, yCoord, myTank.rotation);
+	    this.move();
+	    this.render();
 	}
     }
     if (this.display){
@@ -265,8 +266,8 @@ Bullet.prototype.update = function(){
 Bullet.prototype.render = function(){
     if (this.display){
 	context.beginPath();
-	context.fillStyle = "White";
-	context.arc(this.x, this.y, 1, 0, 2 * Math.PI);
+	context.fillStyle = "Green";
+	context.arc(this.x, this.y, 4, 0, 2 * Math.PI);
 	context.fill();
     }
 }
