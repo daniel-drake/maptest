@@ -200,11 +200,15 @@ function Bullet(){
     this.maxDistance = 100;
     this.currDistance = 0;
     this.speed = 0;
+    this.initialX = 0;
+    this.initialY = 0;
 }
 
 Bullet.prototype.setVector = function(x, y, angleRadians){
     this.x = x;
     this.y = y;
+    this.initialX = x;
+    this.initialY = y;
     this.angleRadians = angleRadians;
 }
 
@@ -219,8 +223,14 @@ Bullet.prototype.move = function(){
     this.x += distX;
     this.y += distY;
 
-    var dist = (distX + distY) / 2;
-    this.currDistance += (Math.abs(dist));
+    var x1 = this.x;
+    var x2 = this.initialX;
+    var y1 = this.y;
+    var y2 = this.initialY;
+
+    var dist = Math.sqrt(Math.pow((x2 - x1), 2) + Math.pow((y2-y1), 2));
+    this.currDistance = (Math.abs(dist));
+    console.log((this.currDistance), dist);
     if (this.currDistance >= this.maxDistance){
 	this.display = false;
     }
@@ -253,8 +263,6 @@ Bullet.prototype.update = function(){
 	    var yCoord = yCenter - Math.sin(myTank.rotation + Math.PI/2) * myTank.height/2;
 	    var xCoord = xCenter - Math.cos(myTank.rotation + Math.PI/2) * myTank.width/2;
 	    this.setVector(xCoord, yCoord, myTank.rotation);
-	    this.move();
-	    this.render();
 	}
     }
     if (this.display){
