@@ -5,7 +5,7 @@ window.mozRequestAnimationFrame ||
 function(callback) { window.setTimeout(callback, 1000/60) };
 
 var canvasWidth = 800;
-var canvasHeight = 800;
+var canvasHeight = 600;
 
 var canvas = document.createElement('canvas');
 canvas.width = canvasWidth;
@@ -17,9 +17,6 @@ window.onload = function() {
     animate(step);
 };
 
-
-console.log("starting");
-
 var step = function() {
     update();
     render();
@@ -27,17 +24,15 @@ var step = function() {
 };
 
 var update = function() {
-    myTank.update();
-    enemyTank.update();
-    myBullet.update();
+    player1.update();
+    player2.update();
 };
 
 var render = function() {
     context.fillStyle = "Black";
     context.fillRect(0, 0, canvas.width,canvas.height);
-    myTank.render();
-    enemyTank.render();
-    myBullet.render();
+    player1.render();
+    player2.render();
 };
 
 var keysDown = {};
@@ -60,7 +55,7 @@ function Tank(width,height, x, y){
 
 };
 
-Tank.prototype.render = function(){
+Tank.prototype.render = function(id){
 
     context.save();
 
@@ -117,9 +112,14 @@ Tank.prototype.render = function(){
 
     // turrent
     context.beginPath();
-    context.strokeStyle = "Red";
+    if (id == 1){
+	context.fillStyle = "Red";
+    }
+    else if (id == 2){
+	context.fillStyle = "Brown";
+    }
     context.arc(x + (this.width / 2), y + (this.height/ 2), bodyWidth / 2, 0, 2 * Math.PI);
-    context.stroke();
+    context.fill();
 
     // draw the gun
     context.beginPath();
@@ -190,12 +190,11 @@ Tank.prototype.update = function(){
     }
 
     if ((rotation != 0) || (speed != 0)){
-	myTank.move(rotation, speed);
+	this.move(rotation, speed);
     }
 }
 
 function Bullet(){
-    // x,y + angle is a vector
     this.x = 0;
     this.y = 0;
     this.angleRadians = 0;
@@ -253,25 +252,6 @@ Bullet.prototype.move = function(){
     }
 }
 
-Bullet.prototype.update = function(){
-    for(var key in keysDown) {
-	var value = Number(key);
-	if(value == 32) { // space bar 
-	    this.display = true;
-	    this.initDistance();    
-	    var xCenter = myTank.xPos + myTank.width / 2;
-	    var yCenter = myTank.yPos + myTank.height / 2;
-	    var yCoord = yCenter - Math.sin(myTank.rotation + Math.PI/2) * myTank.height/2;
-	    var xCoord = xCenter - Math.cos(myTank.rotation + Math.PI/2) * myTank.width/2;
-	    this.setVector(xCoord, yCoord, myTank.rotation);
-	}
-    }
-    if (this.display){
-	this.move();
-    }
-
-}
-
 Bullet.prototype.render = function(){
     if (this.display){
 	context.beginPath();
@@ -281,7 +261,74 @@ Bullet.prototype.render = function(){
     }
 }
 
-var myTank = new Tank(50,50, 20, 20);
-var enemyTank = new Tank(50,50, 200, 20);
-var myTank = new Tank(50,50, 20, 20);
-var myBullet = new Bullet()
+function Player(id, x, y){
+    this.tank = new Tank(50, 50, x, y);
+    this.bullet = new Bullet();
+    this.id = id;
+}
+
+Player.prototype.update = function(){
+
+    var rotation = 0;
+    var speed = 0;
+    var up;
+    var down;
+    var left;
+    var right;
+    var shoot;
+
+    if (this.id == 1){
+    	up = 38;
+	down = 40;
+	left = 37;
+	right = 39;
+	shoot = 32;
+    }
+    else if (this.id == 2){
+	up = 87;
+	down = 83;
+	left = 65;
+	right = 68;
+	shoot = 71;
+    }
+    
+    for(var key in keysDown) {
+	var value = Number(key);
+	if(value == left) { // left arrow
+	    rotation += -.1;
+	} else if (value == right) { // right arrow
+	    rotation += .1;
+	}
+	else if (value == up) { // up arrow
+	    speed = -3;
+	}
+	else if (value == down) { // down arrow
+	    speed = 3;
+	}
+	else if(value == shoot) { // space bar shoot bullet 
+	    this.bullet.display = true;
+	    this.bullet.initDistance();    
+	    var xCenter = this.tank.xPos + this.tank.width / 2;
+	    var yCenter = this.tank.yPos + this.tank.height / 2;
+	    var yCoord = yCenter - Math.sin(this.tank.rotation + Math.PI/2) * this.tank.height/2;
+	    var xCoord = xCenter - Math.cos(this.tank.rotation + Math.PI/2) * this.tank.width/2;
+	    this.bullet.setVector(xCoord, yCoord, this.tank.rotation);
+	}
+    }
+
+    if (this.bullet.display){
+	this.bullet.move();
+    }
+
+    if ((rotation != 0) || (speed != 0)){
+	this.tank.move(rotation, speed);
+    }
+}
+
+Player.prototype.render = function(){
+    this.tank.render(this.id);
+    this.bullet.render();
+}
+
+var player1 = new Player(1, 20, 20);
+var player2 = new Player(2, 80, 80);
