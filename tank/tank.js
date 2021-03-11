@@ -92,6 +92,8 @@ function Tank(width,height, x, y){
     this.speed = 2.0;
     this.xPos = x;
     this.yPos = y;
+    this.killed = 0;
+    this.nextShotAllowed = Date.now();
 };
 
 // support function to return the center
@@ -383,24 +385,39 @@ Player.prototype.update = function(){
 	    speed = 3;
 	}
 	else if(value == shoot) {  
-	    // set the bullet to display
-	    // and set the initial position
-	    // which is the top of the gun muzzle.
-	    // we need to do a little math to figure
-	    // out where that is
-	    this.bullet.display = true;
-	    this.bullet.initDistance();    
-	    var center = this.tank.getCenter();
-	    var yCoord = center.y - Math.sin(this.tank.rotation + Math.PI/2) * this.tank.height/2;
-	    var xCoord = center.x - Math.cos(this.tank.rotation + Math.PI/2) * this.tank.width/2;
-	    this.bullet.setVector(xCoord, yCoord, this.tank.rotation);
+
+	    // do not allow player to keep shooting
+	    // a dead tank
+	    if (this.tank.nextShotAllowed < Date.now()){
+		// set the bullet to display
+		// and set the initial position
+		// which is the top of the gun muzzle.
+		// we need to do a little math to figure
+		// out where that is
+		this.bullet.display = true;
+		this.bullet.initDistance();    
+		var center = this.tank.getCenter();
+		var yCoord = center.y - Math.sin(this.tank.rotation + Math.PI/2) * this.tank.height/2;
+		var xCoord = center.x - Math.cos(this.tank.rotation + Math.PI/2) * this.tank.width/2;
+		this.bullet.setVector(xCoord, yCoord, this.tank.rotation);
+	    }
 	}
     }
 
+    // don't move the bullet if it has not been shoT
     if (this.bullet.display){
 	this.bullet.move();
     }
 
+    // handle case where tank is killed
+    // a killed tank will spin
+    if (this.tank.killed > 0){
+	speed = 0;
+	this.tank.killed -= 1;
+	rotation = .1;
+    }
+
+    // don't move the tank if it will not move
     if ((rotation != 0) || (speed != 0)){
 	this.tank.move(rotation, speed);
     }
@@ -440,7 +457,11 @@ function checkForCollisions(){
     if (player1.bullet.display){
 	if (didCollide(player1.bullet, player2.tank)){
 	    player1.bullet.display = false;
-	    console.log ("player1 hit player2");
+	    if (player2.tank.killed == 0){
+		player2.tank.killed = 100;
+		// can't shoot for another 5 seconds
+		player1.tank.nextShotAllowed = Date.now() + 5000;
+	    }
 	}
     }
 
@@ -448,7 +469,11 @@ function checkForCollisions(){
     if (player2.bullet.display){
 	if (didCollide(player2.bullet, player1.tank)){
 	    player2.bullet.display = false;
-	    console.log ("player2 hit player1");
+	    if (player2.tank.killed == 0){
+		player1.tank.killed = 100;
+		// can't shoot for another 5 seconds
+		player2.tank.nextShotAllowed = Date.now() + 5000;
+	    }
 	}
     }
 }
