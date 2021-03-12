@@ -14,7 +14,7 @@ function(callback) { window.setTimeout(callback, 1000/60) };
 
 // this is the width and height of the play field
 var canvasWidth = 800;
-var canvasHeight = 400;
+var canvasHeight = 550;
 
 // create the canvas.  a canvas is what we are drawing on
 var canvas = document.createElement('canvas');
@@ -35,11 +35,18 @@ window.onload = function() {
 // this function called again, we need to make
 // a call to animate each time
 var step = function() {
+    erase();
+    erase();
     update();
     render();
     checkForCollisions();
     animate(step);
 };
+
+var erase = function(){
+    player1.erase();
+    player2.erase();
+}
 
 // this updates the tank and bullets
 // positions for each player
@@ -48,11 +55,16 @@ var update = function() {
     player2.update();
 };
 
+var once = true;
+
 // this repaints the backgrouns and
 // draws the tanks and bullets foreach player
 var render = function() {
-    context.fillStyle = "Black";
-    context.fillRect(0, 0, canvas.width,canvas.height);
+    if (once == true){
+	context.fillStyle = "Black";
+	context.fillRect(0, 0, canvas.width,canvas.height);
+	once = false;
+    }
     player1.render();
     player2.render();
 };
@@ -85,7 +97,7 @@ function Coord(x,y){
 // is in radians and is off by PI/2 because
 // of how the tank is drawn.  It is facing up
 // pi/2 instead of right which would be 0 PI 
-function Tank(width,height, x, y){
+function Tank(width,height, x, y, color){
     this.width = width;
     this.height = height;
     this.rotation = 0.0;
@@ -94,6 +106,8 @@ function Tank(width,height, x, y){
     this.yPos = y;
     this.killed = 0;
     this.nextShotAllowed = Date.now();
+    this.color = color 
+    this.frameColor = "White";
 };
 
 // support function to return the center
@@ -140,7 +154,7 @@ Tank.prototype.render = function(id){
    
     // left track
     context.beginPath();
-    context.strokeStyle = "White";
+    context.strokeStyle = this.frameColor;
     context.moveTo(leftTrackXOffset, leftTrackYOffset);
     context.lineTo(leftTrackXOffset, leftTrackYOffset + trackHeight);
     context.lineTo(leftTrackXOffset + trackWidth, leftTrackYOffset + trackHeight);
@@ -150,7 +164,7 @@ Tank.prototype.render = function(id){
     
     // body
     context.beginPath();
-    context.strokeStyle = "White";
+    context.strokeStyle = this.frameColor;
     context.moveTo(bodyXOffset, bodyYOffset);
     context.lineTo(bodyXOffset, bodyYOffset + bodyHeight);
     context.lineTo(bodyXOffset + bodyWidth, bodyYOffset + bodyHeight);
@@ -160,7 +174,7 @@ Tank.prototype.render = function(id){
 
     // right track
     context.beginPath();
-    context.strokeStyle = "White";
+    context.strokeStyle = this.frameColor;
     context.moveTo(rightTrackXOffset, rightTrackYOffset);
     context.lineTo(rightTrackXOffset, rightTrackYOffset + trackHeight);
     context.lineTo(rightTrackXOffset + trackWidth, rightTrackYOffset + trackHeight);
@@ -170,19 +184,14 @@ Tank.prototype.render = function(id){
 
     // turrent
     context.beginPath();
-    if (id == 1){
-	context.fillStyle = "DarkKhaki";
-    }
-    else if (id == 2){
-	context.fillStyle = "Brown";
-    }
+    context.fillStyle = this.color;
     context.arc(x + (this.width / 2), y + (this.height/ 2), bodyWidth / 2, 0, 2 * Math.PI);
     context.fill();
 
     // draw the gun
     context.beginPath();
     context.lineWidth = 3;
-    context.strokeStyle = "White";
+    context.strokeStyle = this.frameColor;
     context.moveTo(x + (this.width / 2), y + (this.height/ 2));
     context.lineTo(x + (this.width / 2), y);
     context.stroke();
@@ -258,6 +267,7 @@ function Bullet(){
     this.initialX = 0;
     this.initialY = 0;
     this.radius = 4;
+    this.color = "Green";
 }
 
 // this sets the start point and the angle for a bullet
@@ -323,7 +333,7 @@ Bullet.prototype.move = function(){
 Bullet.prototype.render = function(){
     if (this.display){
 	context.beginPath();
-	context.fillStyle = "Green";
+	context.fillStyle = this.color;
 	context.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
 	context.fill();
     }
@@ -337,8 +347,8 @@ Bullet.prototype.getBoundingCircle = function(){
 
 // a player encapsulates a tank and a bullet
 // the controls are different per player
-function Player(id, x, y){
-    this.tank = new Tank(50, 50, x, y);
+function Player(id, x, y, color){
+    this.tank = new Tank(50, 50, x, y, color);
     this.bullet = new Bullet();
     this.id = id;
 }
@@ -423,6 +433,20 @@ Player.prototype.update = function(){
     }
 }
 
+Player.prototype.erase = function(){
+    color = this.tank.color;
+
+    this.tank.color = "Black";
+    this.tank.frameColor = "Black";
+    this.bullet.color = "Black";
+
+    this.render();
+
+    this.tank.color = color;
+    this.tank.frameColor = "White";
+    this.bullet.color = "Green";
+}
+
 // draw the tank and bullet 
 Player.prototype.render = function(){
     this.tank.render(this.id);
@@ -430,8 +454,8 @@ Player.prototype.render = function(){
 }
 
 // here are the two players
-var player1 = new Player(1, 20, 20);
-var player2 = new Player(2, 80, 80);
+var player1 = new Player(1, 20, 20, "DarkKhaki");
+var player2 = new Player(2, 80, 80, "Brown");
 
 // this function determines if two objects
 // collided
